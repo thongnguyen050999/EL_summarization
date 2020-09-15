@@ -2,10 +2,7 @@
 
 ###### 1) Entity Linking architecture
 
-![image-20200915093143610](C:\Users\Admin\AppData\Roaming\Typora\typora-user-images\image-20200915093143610.png)
-
-
-
+![image-20200915093143610](./images/EntityLinking.jpg)
 
 
 ###### Commands (training + testing)
