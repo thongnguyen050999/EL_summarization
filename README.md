@@ -5,7 +5,7 @@
 ![image-20200915093143610](./images/EntityLinking.jpg)
 
 
-###### Commands (training + testing)
+###### 2) Commands (training + testing)
 
 - To execute NER model 
 
