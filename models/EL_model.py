@@ -10,6 +10,7 @@ from nltk.stem import WordNetLemmatizer
 import numpy as np
 import torch
 import re
+import argparse
 
 
 class EL_model:
@@ -37,7 +38,7 @@ class EL_model:
 
     def train(self, epochs=10):
         self.model.fit([self.data.lstm_train, self.data.graph_train],
-                       self.data.y_train, epochs=epochs)
+                       self.data.y_train, validation_split=0.2, epochs=epochs)
 
 
 class EL_data:
@@ -81,10 +82,10 @@ class EL_data:
 
         self.prepare_data()
 
-    def preprocess_text(self,text):
-        text=re.sub(r'[^\w\s]','',text)
-        tokens=text.lower()
-        tokens=re.split(r'[\s_]',tokens)
+    def preprocess_text(self, text):
+        text = re.sub(r'[^\w\s]', '', text)
+        tokens = text.lower()
+        tokens = re.split(r'[\s_]', tokens)
         return '_'.join(tokens)
 
     def get_context(self, tokens, start, end):
@@ -203,24 +204,31 @@ class EL_data:
 
 
 def main():
-    folder = './dataset/KDWD'
-    text_file = 'intro_text.csv'
-    entity_df_file = 'intro_entity.csv'
-    kdwd_entity_file = 'training_data//entity2id.txt'
-    forest_file = './models/weights/lsh_forest.pkl'
-    glove_file = './models/weights/glove/glove.6B.50d.txt'
-    ent_embedding_file = './models/OpenKE/ent_embeddings.pkl'
-    rel_embedding_file = './models/OpenKE/rel_embeddings.pkl'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--folder', type=str, default='./dataset/KDWD')
+    parser.add_argument('--text-file', type=str, default='intro_text.csv')
+    parser.add_argument('--entity-df-file', type=str,
+                        default='intro_entity.csv')
+    parser.add_argument('--kdwd-entity-file', type=str,
+                        default='training_data/entity2id.txt')
+    parser.add_argument('--forest-file', type=str,
+                        default='./models/weights/lsh_forest.pkl')
+    parser.add_argument('--glove-file', type=str,
+                        default='./models/weights/glove/glove.6B.50d.txt')
+    parser.add_argument('--ent-embedding-file', type=str,
+                        default='./models/OpenKE/ent_embeddings.pkl')
+    parser.add_argument('--rel-embedding-file', type=str,
+                        default='./models/OpenKE/rel_embeddings.pkl')
+    parser.add_argument('--text-input-shape', type=int, default=20)
+    parser.add_argument('--graph-input-shape', type=int, default=200)
+    parser.add_argument('--embed-dim', type=int, default=50)
 
-    el_data = EL_data(folder, text_file, entity_df_file,
-                      kdwd_entity_file, ent_embedding_file, rel_embedding_file, forest_file, glove_file)
+    args = parser.parse_args()
+    el_data = EL_data(args.folder, args.text_file, args.entity_df_file,
+                      args.kdwd_entity_file, args.ent_embedding_file, args.rel_embedding_file, args.forest_file, args.glove_file)
 
-    text_input_shape = 20
-    graph_input_shape = 200
-    embed_dim = 50
-
-    el_model = EL_model(el_data, text_input_shape,
-                        graph_input_shape, embed_dim)
+    el_model = EL_model(el_data, args.text_input_shape,
+                        args.graph_input_shape, args.embed_dim)
     el_model.train()
 
 

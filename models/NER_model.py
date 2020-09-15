@@ -13,14 +13,15 @@ from collections import defaultdict
 from sklearn.preprocessing import OneHotEncoder
 import spacy
 import pickle
+import argparse
 
 seed(1)
 tensorflow.random.set_seed(2)
 nlp = spacy.load('en_core_web_lg')
 
 
-## Existing bugs:
-### Punctuation
+# Existing bugs:
+# Punctuation
 
 class NER_data:
 
@@ -77,14 +78,15 @@ class NER_data:
             if len(sentences[id]) <= self.max_len:
                 target_id.add(id)
 
-
+        self.tok2idx = {tok: idx for idx, tok in enumerate(self.vocab)}
+        self.idx2tok = {idx: tok for idx, tok in enumerate(self.vocab)}
         X = defaultdict(list)
         y = defaultdict(list)
         for id in target_id:
             print(id)
             sent = sentences[id]
             for word in sent:
-                X[id].append(tok2idx[word])
+                X[id].append(self.tok2idx[word])
             label = np.zeros(len(sent))
             for i in range(len(positions[id])):
                 pos = positions[id][i]
@@ -147,7 +149,8 @@ class NER_model:
         model = Sequential()
         model.add(Embedding(input_dim=self.input_dim,
                             output_dim=self.output_dim, input_length=self.input_length))
-        model.add(Bidirectional(LSTM(units=self.output_dim, return_sequences=True), merge_mode='concat'))
+        model.add(Bidirectional(LSTM(units=self.output_dim,
+                                     return_sequences=True), merge_mode='concat'))
         model.add(LSTM(units=self.output_dim, return_sequences=True))
         model.add(TimeDistributed(Dense(self.n_tags, activation='sigmoid')))
 
@@ -155,7 +158,7 @@ class NER_model:
                       optimizer='adam', metrics=['accuracy'])
         self.model = model
 
-    def train(self, X, y, batch_size=32, validation_split=0.2, num_epochs=30):
+    def train(self, X, y, batch_size=32, validation_split=0.2, num_epochs=2):
         hist = self.model.fit(X, y, epochs=num_epochs, batch_size=batch_size,
                               validation_split=validation_split, verbose=1)
         self.model.save('./models/weights/ner_model.h5')
@@ -165,30 +168,36 @@ class NER_model:
 
 
 def main():
-    folder = './dataset/KDWD'
-    text_file = 'intro_text.csv'
-    entity_file = 'intro_entity.csv'
-    max_len = 256
-    seg_len = 10
-    output_dim = 32
-    n_tags = 2
-    mode = 'train'
-    path = './models/weights/ner_model.h5'
 
-    if mode == 'train':
-        ner_data = NER_data(folder, text_file, entity_file, max_len, seg_len)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--folder', type=str, default='./dataset/KDWD')
+    parser.add_argument('--text-file', type=str, default='intro_text.csv')
+    parser.add_argument('--entity-file', type=str, default='intro_entity.csv')
+    parser.add_argument('--max-len', type=int, default=256)
+    parser.add_argument('--seg-len', type=int, default=10)
+    parser.add_argument('--output-dim', type=int, default=32)
+    parser.add_argument('--n-tags', type=int, default=2)
+    parser.add_argument('--mode', type=str, default='train')
+    parser.add_argument('--path', type=str,
+                        default='./models/weights/ner_model.h5')
+
+    args = parser.parse_args()
+
+    if args.mode == 'train':
+        ner_data = NER_data(args.folder, args.text_file,
+                            args.entity_file, args.max_len, args.seg_len)
         pickleOut = open('./dataset/NER/ner_data.pkl', 'wb')
         pickle.dump(ner_data, pickleOut)
         pickleOut.close()
 
         ner_model = NER_model(ner_data.input_dim,
-                              ner_data.seg_len, output_dim, max_len, n_tags)
+                              ner_data.seg_len, args.output_dim, args.max_len, args.n_tags)
         ner_model.train(ner_data.X, ner_data.y)
     else:
         pickleIn = open('./dataset/NER/ner_data.pkl', 'rb')
         ner_data = pickle.load(pickleIn)
         ner_model = NER_model(ner_data.input_dim,
-                              ner_data.seg_len, output_dim, max_len, n_tags, path)
+                              ner_data.seg_len, args.output_dim, args.max_len, args.n_tags, args.path)
         ner_model.test()
 
         N = 100
@@ -205,14 +214,14 @@ def main():
             for ele in tmp_data:
                 print(ner_data.idx2tok[ele], end=' ')
             print()
-            print('Predicted:',end=' ')
+            print('Predicted:', end=' ')
             for ele in tmp_label:
                 if ele[1] >= 0.4:
                     print(1, end=' ')
                 else:
                     print(0, end=' ')
             print()
-            print('Label:',end=' ')
+            print('Label:', end=' ')
             for ele in tmp_y:
                 if ele[1] >= 0.4:
                     print(1, end=' ')

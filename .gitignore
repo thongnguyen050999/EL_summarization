@@ -1,2 +1,8 @@
-models/weights/*
+checkpoint/*.pkl
+checkpoint/*.h5
+checkpoint/*.ckpt
+checkpoint/glove/*
+checkpoint/OpenKE/*
+
+
 models/OpenKE/*
