@@ -1,0 +1,2 @@
+python -m models.NER_model
+python -m models.EL_model
